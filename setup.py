@@ -1,5 +1,5 @@
 from setuptools import setup, find_packages
-from pymqo import __version__, __author__, __email__
+from event_queue import __version__, __author__, __email__
 
 setup(
     name='event-queue',

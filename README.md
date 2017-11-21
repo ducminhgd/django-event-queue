@@ -1,11 +1,15 @@
 # Event Queue
 
+*Current version:* 0.1.0 (dev)
+
 ## Requirements
 
 1. Using cache (memcache, redis,... )
 2. Python 3
 
 ## Installation
+
+Run `pip install django-event-queue`
 
 ### Add settings
 

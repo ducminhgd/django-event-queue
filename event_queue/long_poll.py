@@ -16,17 +16,21 @@ class LongPoll(object):
     __port = 5672
     __vhost = '/'
     __queue_name = ''
+    __routing_key = None
 
-    def __init__(self, host='localhost', port=5672, username='guest', password='guest', vhost='/', queue_name=None,
+    def __init__(self, host='localhost', port=5672, username='guest', password='guest', vhost='/', routing_key=None,
+                 queue_name=None,
                  exchange='', exchange_type=None):
-        self.__exchange = exchange
-        self.__exchange_type = exchange_type
         self.__host = host
         self.__port = port
         self.__username = username
         self.__password = password
         self.__vhost = vhost
+
+        self.__exchange = exchange
+        self.__exchange_type = exchange_type
         self.__queue_name = queue_name
+        self.__routing_key = routing_key
 
     def connect(self):
         """
@@ -45,6 +49,9 @@ class LongPoll(object):
         self.__connection = pika.BlockingConnection(parameters=params)
         self.__channel = self.__connection.channel()
         self.__channel.queue_declare(queue=self.__queue_name, durable=True, exclusive=False, auto_delete=False)
+        if self.__routing_key is not None:
+            self.__channel.queue_bind(queue=self.__queue_name, routing_key=self.__routing_key,
+                                      exchange=self.__exchange_type)
         self.__channel.basic_qos()
 
     def listening(self):
@@ -71,7 +78,8 @@ class LongPoll(object):
             exchange_type=self.__exchange_type,
             correlation_id=props.correlation_id,
             payload=body,
-            queue=method.routing_key,
+            queue=self.__queue_name,
+            routing_key=method.routing_key,
         )
         print(body)
 
@@ -85,12 +93,13 @@ class LongPoll(object):
         self.__connection = None
 
     def insert_event(self, exchange=None, exchange_type=None, correlation_id=None, payload=None, queue=None,
-                     event_type=EventQueueModel.TYPE__RECEIVE):
+                     routing_key=None, event_type=EventQueueModel.TYPE__RECEIVE):
         try:
             event = EventQueueModel(
                 exchange=exchange,
                 exchange_type=exchange_type,
                 queue=queue,
+                routing_key=routing_key,
                 correlation_id=correlation_id,
                 payload=payload,
                 event_type=event_type,

@@ -16,6 +16,7 @@ class QueueProcessFacade(object):
     EXCHANGE = None
     EXCHANGE_TYPE = None
     QUEUE = None
+    ROUTING_KEY = None
     EVENT_TYPE = None
     TIMEOUT = 1
 
@@ -52,6 +53,7 @@ class QueueProcessFacade(object):
             'exchange': None,
             'exchange_type': None,
             'queue': None,
+            'routing_key': None,
             'event_type': None,
         }
 
@@ -102,7 +104,7 @@ class QueueProcessFacade(object):
             key = self.get_task_name()
         task_cache.delete(key)
 
-    def get_list(self, exchange=None, exchange_type=None, queue=None, event_type=None):
+    def get_list(self, exchange=None, exchange_type=None, queue=None, routing_key=None, event_type=None):
         """
         Get list of opened events
 
@@ -118,6 +120,8 @@ class QueueProcessFacade(object):
             query_params['exchange_type'] = exchange_type
         if queue is not None:
             query_params['queue'] = queue
+        if routing_key is not None:
+            query_params['routing_key'] = routing_key
         if event_type is not None:
             query_params['event_type'] = event_type
 
@@ -163,6 +167,7 @@ class QueueProcessFacade(object):
                 exchange=args['exchange'],
                 exchange_type=args['exchange_type'],
                 queue=args['queue'],
+                routing_key=args['routing_key'],
                 event_type=args['event_type']
             )
             for event in event_list:

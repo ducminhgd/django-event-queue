@@ -24,6 +24,7 @@ class EventQueueModel(models.Model):
     exchange = models.CharField(max_length=50, null=True)
     exchange_type = models.CharField(max_length=50, null=True)
     queue = models.CharField(max_length=50, null=True)
+    routing_key = models.CharField(max_length=50, null=True)
     correlation_id = models.CharField(max_length=36, null=True)
     payload = models.TextField(null=True)
     event_type = models.PositiveSmallIntegerField(default=TYPE__UNKNOWN, choices=TYPE_CHOICES)

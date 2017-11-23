@@ -21,6 +21,7 @@ class EventQueueModel(models.Model):
     )
 
     id = models.BigAutoField(primary_key=True)
+    task_name = models.CharField(max_length=50, null=True)
     exchange = models.CharField(max_length=50, null=True)
     exchange_type = models.CharField(max_length=50, null=True)
     queue = models.CharField(max_length=50, null=True)

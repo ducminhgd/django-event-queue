@@ -113,31 +113,25 @@ class LongPoll(object):
     def insert_event(self, task_name=None, exchange=None, exchange_type=None, correlation_id=None, payload=None,
                      queue=None,
                      routing_key=None, event_type=EventQueueModel.TYPE__RECEIVE):
-        try:
-            event = EventQueueModel(
-                task_name=task_name,
-                exchange=exchange,
-                exchange_type=exchange_type,
-                queue=queue,
-                routing_key=routing_key,
-                correlation_id=correlation_id,
-                payload=payload,
-                event_type=event_type,
-                attempt=0,
-                status=EventQueueModel.STATUS__OPENED,
-            )
-            event.save()
-            return event
-        except:
-            exc_info = utils.format_exc_info(sys.exc_info())
-            logger.info('[Exception] {}'.format(exc_info))
-            return None
+        event = EventQueueModel(
+            task_name=task_name,
+            exchange=exchange,
+            exchange_type=exchange_type,
+            queue=queue,
+            routing_key=routing_key,
+            correlation_id=correlation_id,
+            payload=payload,
+            event_type=event_type,
+            attempt=0,
+            status=EventQueueModel.STATUS__OPENED,
+        )
+        event.save()
+        return event
 
     def __call__(self, *args, **kwargs):
         try:
             self.connect()
             self.listening()
         except:
-            exc_info = utils.format_exc_info(sys.exc_info())
-            logger.info('[Exception] {}'.format(exc_info))
             self.close()
+            raise sys.exc_info()

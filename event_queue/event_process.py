@@ -1,9 +1,7 @@
 import logging
-import sys
 from django.core.cache import caches
 from django.utils import timezone
 
-from event_queue import utils
 from event_queue.models import EventQueueModel
 
 task_cache = caches['default']
@@ -133,8 +131,8 @@ class QueueProcessFacade(object):
             query_params['event_type'] = event_type
         if status is not None:
             query_params['status'] = status
-        logger.info('get_list | task: {} | query_params: {}'.format(task_name, query_params))
         opened_list = EventQueueModel.objects.filter(**query_params)
+        logger.info('get_list | query_params: {} | record: {}'.format(query_params, len(opened_list)))
         return opened_list
 
     def closed_event(self, event):
@@ -167,30 +165,25 @@ class QueueProcessFacade(object):
         return True
 
     def __call__(self, **kwargs):
-        try:
-            task_name = self.get_task_name()
-            if self.is_running_task(key=task_name):
-                logger.info('Running | task: {}'.format(task_name))
-                return False
-            self.lock_task(key=task_name)
-            logger.info('Locked | task: {}'.format(task_name))
-            args = self.get_args(**kwargs)
-            logger.info('get_args | task: {} | args: {}'.format(task_name, args))
-            event_list = self.get_list(
-                task_name=args['task_name'],
-                exchange=args['exchange'],
-                exchange_type=args['exchange_type'],
-                queue=args['queue'],
-                routing_key=args['routing_key'],
-                event_type=args['event_type']
-            )
-            for event in event_list:
-                logger.info('get_list | task: {} | event_id: {}'.format(task_name, event.id))
-                if self.process(event):
-                    self.closed_event(event)
-            self.release_lock(task_name)
-            return True
-        except:
-            exc_info = utils.format_exc_info(sys.exc_info())
-            logger.info('exception: {}'.format(exc_info))
-        return False
+        task_name = self.get_task_name()
+        if self.is_running_task(key=task_name):
+            logger.info('Running | task: {}'.format(task_name))
+            return False
+        self.lock_task(key=task_name)
+        logger.info('Locked | task: {}'.format(task_name))
+        args = self.get_args(**kwargs)
+        logger.info('get_args | task: {} | args: {}'.format(task_name, args))
+        event_list = self.get_list(
+            task_name=args['task_name'],
+            exchange=args['exchange'],
+            exchange_type=args['exchange_type'],
+            queue=args['queue'],
+            routing_key=args['routing_key'],
+            event_type=args['event_type']
+        )
+        for event in event_list:
+            logger.info('get_list | task: {} | event_id: {}'.format(task_name, event.id))
+            if self.process(event):
+                self.closed_event(event)
+        self.release_lock(task_name)
+        return True

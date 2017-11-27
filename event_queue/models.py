@@ -14,6 +14,7 @@ class EventQueueModel(models.Model):
 
     STATUS__OPENED = 0
     STATUS__CLOSED = 1
+    STATUS__CANCELLED = 2
 
     STATUS_CHOICES = (
         (STATUS__OPENED, 'Opened'),
@@ -32,7 +33,7 @@ class EventQueueModel(models.Model):
     attempt = models.PositiveIntegerField(default=0, auto_created=True, null=False)
     status = models.PositiveSmallIntegerField(default=STATUS__OPENED, null=False, choices=STATUS_CHOICES)
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(null=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True)
 
     class Meta:
         db_table = 'event_queue'

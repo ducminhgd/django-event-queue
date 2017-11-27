@@ -1,4 +1,8 @@
+import os
+import importlib
 import logging
+
+import pika
 from django.core.cache import caches
 from django.utils import timezone
 
@@ -21,6 +25,15 @@ class QueueProcessFacade(object):
     ROUTING_KEY = None
     EVENT_TYPE = None
     TIMEOUT = 1
+
+    __default_connection_config = {
+        'host': os.environ.get('AMQP_HOST', 'localhost'),
+        'port': os.environ.get('AMQP_HOST', 5672),
+        'vhost': os.environ.get('AMQP_VHOST', '/'),
+        'username': os.environ.get('AMQP_USERNAME', 'guest'),
+        'password': os.environ.get('AMQP_PASSWORD', 'guest'),
+    }
+    __connection = None
 
     def __init__(self, task_name=None):
         self.set_task_name(task_name)
@@ -132,7 +145,7 @@ class QueueProcessFacade(object):
         if status is not None:
             query_params['status'] = status
         opened_list = EventQueueModel.objects.filter(**query_params)
-        logger.info('get_list | query_params: {} | record: {}'.format(query_params, len(opened_list)))
+        logger.info('get_list | query_params: {} | number of records: {}'.format(query_params, len(opened_list)))
         return opened_list
 
     def closed_event(self, event):
@@ -164,6 +177,37 @@ class QueueProcessFacade(object):
             return False
         return True
 
+    def make_connection(self, connection_config=None):
+        """
+        Connect to a host
+        :param connection_config:
+        :type connection_config: dict
+        :return:
+        """
+        if connection_config is None:
+            connection_config = self.__default_connection_config
+        self.__default_connection_config.update(connection_config)
+        self.__connection = pika.BlockingConnection(
+            pika.ConnectionParameters(
+                host=self.__default_connection_config['host'],
+                virtual_host=self.__default_connection_config['vhost'],
+                port=self.__default_connection_config['port'],
+                credentials=pika.credentials.PlainCredentials(
+                    username=self.__default_connection_config['username'],
+                    password=self.__default_connection_config['password'],
+                )
+            )
+        )
+        return self.__connection
+
+    def close_connection(self):
+        """
+        Close AMQP connection
+        :return:
+        """
+        self.__connection.close()
+        self.__connection = None
+
     def __call__(self, **kwargs):
         task_name = self.get_task_name()
         if self.is_running_task(key=task_name):
@@ -181,9 +225,16 @@ class QueueProcessFacade(object):
             routing_key=args['routing_key'],
             event_type=args['event_type']
         )
-        for event in event_list:
-            logger.info('get_list | task: {} | event_id: {}'.format(task_name, event.id))
-            if self.process(event):
-                self.closed_event(event)
-        self.release_lock(task_name)
+        if len(event_list) > 0:
+            self.make_connection(kwargs.get('ampq_config', None))
+            for event in event_list:
+                logger.info('get_list | task: {} | event_id: {}'.format(task_name, event.id))
+                if self.process(event):
+                    self.closed_event(event)
+            self.release_lock(task_name)
+            self.close_connection()
         return True
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.__connection is not None:
+            self.close_connection()

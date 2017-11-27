@@ -29,7 +29,39 @@ CACHES = {
         'TIMEOUT': 300,
     }
 }
+```
 
+### Default configuration for AMQP connection
+
+```python
+{
+    'host': os.environ.get('AMQP_HOST', 'localhost'),
+    'port': os.environ.get('AMQP_HOST', 5672),
+    'vhost': os.environ.get('AMQP_VHOST', '/'),
+    'username': os.environ.get('AMQP_USERNAME', 'guest'),
+    'password': os.environ.get('AMQP_PASSWORD', 'guest'),
+}
+```
+
+If new configuration likes:
+
+```python
+{
+    'username': os.environ.get('AMQP_USERNAME', 'username'),
+    'password': os.environ.get('AMQP_PASSWORD', 'password'),
+}
+```
+
+then final configuration used for make connection is:
+
+```python
+{
+    'host': os.environ.get('AMQP_HOST', 'localhost'),
+    'port': os.environ.get('AMQP_HOST', 5672),
+    'vhost': os.environ.get('AMQP_VHOST', '/'),
+    'username': os.environ.get('AMQP_USERNAME', 'username'),
+    'password': os.environ.get('AMQP_PASSWORD', 'password'),
+}
 ```
 
 ### Run migrate data

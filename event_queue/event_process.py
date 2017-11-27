@@ -226,7 +226,7 @@ class QueueProcessFacade(object):
             event_type=args['event_type']
         )
         if len(event_list) > 0:
-            self.make_connection(kwargs.get('ampq_config', None))
+            self.make_connection(kwargs.get('amqp_config', None))
             for event in event_list:
                 logger.info('get_list | task: {} | event_id: {}'.format(task_name, event.id))
                 if self.process(event):

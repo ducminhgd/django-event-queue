@@ -38,6 +38,13 @@ class QueueProcessFacade(object):
     def __init__(self, task_name=None):
         self.set_task_name(task_name)
 
+    def set_connection(self, connection=None):
+        if connection is not None:
+            self.__connection = connection
+
+    def get_connection(self):
+        return self.__connection
+
     def set_task_name(self, name):
         """
         Set task name

@@ -97,6 +97,7 @@ class LongPoll(object):
             queue=self.__queue_name,
             routing_key=method.routing_key,
         )
+        ch.basic_ack(delivery_tag=method.delivery_tag)
         return inserted
 
     def close(self):

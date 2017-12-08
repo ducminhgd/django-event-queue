@@ -129,14 +129,16 @@ class QueueProcessFacade(object):
         logger.info('release_lock | task: {}'.format(key))
 
     def get_list(self, task_name=None, exchange=None, exchange_type=None, queue=None, routing_key=None, event_type=None,
-                 status=EventQueueModel.STATUS__OPENED):
+                 status=EventQueueModel.STATUS__OPENED, max_attempt=3):
         """
         Get list of opened events
 
         :return: model list
         """
 
-        query_params = {}
+        query_params = {
+            'attempt__lte': max_attempt,
+        }
         if task_name is not None:
             query_params['task_name'] = task_name
         if exchange is not None:
@@ -212,8 +214,12 @@ class QueueProcessFacade(object):
         Close AMQP connection
         :return:
         """
-        self.__connection.close()
-        self.__connection = None
+        try:
+            self.__connection.close()
+        except:
+            pass
+        finally:
+            self.__connection = None
 
     def __call__(self, **kwargs):
         task_name = self.get_task_name()
@@ -225,15 +231,17 @@ class QueueProcessFacade(object):
         args = self.get_args(**kwargs)
         logger.info('get_args | task: {} | args: {}'.format(task_name, args))
         event_list = self.get_list(
-            task_name=args['task_name'],
-            exchange=args['exchange'],
-            exchange_type=args['exchange_type'],
-            queue=args['queue'],
-            routing_key=args['routing_key'],
-            event_type=args['event_type']
+            task_name=args.get('task_name', None),
+            exchange=args.get('exchange', None),
+            exchange_type=args.get('exchange_type', None),
+            queue=args.get('queue', None),
+            routing_key=args.get('routing_key', None),
+            event_type=args.get('event_type', None),
+            max_attempt=args.get('max_attempt', 3)
         )
         if len(event_list) > 0:
-            self.make_connection(kwargs.get('amqp_config', None))
+            if kwargs.get('make_amqp_connection', True):
+                self.make_connection(kwargs.get('amqp_config', None))
             for event in event_list:
                 logger.info('get_list | task: {} | event_id: {}'.format(task_name, event.id))
                 if self.process(event):

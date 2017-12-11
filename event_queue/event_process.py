@@ -137,7 +137,7 @@ class QueueProcessFacade(object):
         """
 
         query_params = {
-            'attempt__lte': max_attempt,
+            'attempt__lt': max_attempt,
         }
         if task_name is not None:
             query_params['task_name'] = task_name

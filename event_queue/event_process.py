@@ -107,6 +107,7 @@ class QueueProcessFacade(object):
         current_timestamp = timezone.now().timestamp()
         if current_timestamp - begin_timestamp > timeout:
             return False
+        logger.info('Running | task: {}'.format(key))
         return True
 
     def lock_task(self, key=TASK_NAME, timeout=None):
@@ -122,6 +123,7 @@ class QueueProcessFacade(object):
         if timeout is None:
             timeout = self.__timeout
         task_cache.set(key, timezone.now().timestamp(), timeout)
+        logger.info('Locked | task: {}'.format(key))
 
     def release_lock(self, key=TASK_NAME):
         """
@@ -250,32 +252,34 @@ class QueueProcessFacade(object):
     def __call__(self, **kwargs):
         task_name = self.get_task_name()
         if self.is_running_task(key=task_name):
-            logger.info('Running | task: {}'.format(task_name))
             return False
-        self.lock_task(key=task_name)
-        logger.info('Locked | task: {}'.format(task_name))
-        args = self.get_args(**kwargs)
-        logger.info('get_args | task: {} | args: {}'.format(task_name, args))
-        event_list = self.get_list(
-            task_name=args.get('task_name', None),
-            exchange=args.get('exchange', None),
-            exchange_type=args.get('exchange_type', None),
-            queue=args.get('queue', None),
-            routing_key=args.get('routing_key', None),
-            event_type=args.get('event_type', None),
-            max_attempt=args.get('max_attempt', 3),
-            limit=args.get('limit', None)
-        )
-        if len(event_list) > 0:
-            if kwargs.get('make_amqp_connection', True):
-                self.make_connection(kwargs.get('amqp_config', None))
-                self.create_channel()
-            for event in event_list:
-                logger.info('get_list | task: {} | event_id: {}'.format(task_name, event.id))
-                if self.process(event):
-                    self.close_event(event)
-            self.close_channel()
-            self.close_connection()
+        try:
+            self.lock_task(key=task_name)
+            args = self.get_args(**kwargs)
+            logger.info('get_args | task: {} | args: {}'.format(task_name, args))
+            event_list = self.get_list(
+                task_name=args.get('task_name', None),
+                exchange=args.get('exchange', None),
+                exchange_type=args.get('exchange_type', None),
+                queue=args.get('queue', None),
+                routing_key=args.get('routing_key', None),
+                event_type=args.get('event_type', None),
+                max_attempt=args.get('max_attempt', 3),
+                limit=args.get('limit', None)
+            )
+            if len(event_list) > 0:
+                if kwargs.get('make_amqp_connection', True):
+                    self.make_connection(kwargs.get('amqp_config', None))
+                    self.create_channel()
+                for event in event_list:
+                    logger.info('get_list | task: {} | event_id: {}'.format(task_name, event.id))
+                    if self.process(event):
+                        self.close_event(event)
+                self.close_channel()
+                self.close_connection()
+        except:
+            self.release_lock(task_name)
+            raise
         self.release_lock(task_name)
         return True
 

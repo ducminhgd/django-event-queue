@@ -2,6 +2,10 @@
 
 ## Version 0.x.x
 
+### Version 0.1.15
+
+- Release lock task when has exception
+
 ### Version 0.1.14
 
 - Fix bug update close event

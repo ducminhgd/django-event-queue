@@ -39,7 +39,7 @@ class QueueProcessFacade(object):
     __timeout = None
     __limit = None
 
-    def __init__(self, task_name=None, timeout=None, limit=None):
+    def __init__(self, task_name=None, timeout=600, limit=100):
         self.set_task_name(task_name)
         self.__timeout = timeout
         self.__limit = limit

@@ -174,7 +174,7 @@ class QueueProcessFacade(object):
 
         """
         affected_row = EventQueueModel.objects.filter(
-            Q(pk=event.id) and ~Q(status=EventQueueModel.STATUS__CLOSED)
+            Q(pk=event.id) & ~Q(status=EventQueueModel.STATUS__CLOSED)
         ).update(status=EventQueueModel.STATUS__CLOSED, updated_at=timezone.now())
         logger.info(
             'close_event | task: {} | event_id: {} | affected_row: {}'.format(event.task_name, event.id, affected_row))

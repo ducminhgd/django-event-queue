@@ -2,6 +2,14 @@
 
 ## Version 0.x.x
 
+### Version 0.1.14
+
+- Fix bug update close event
+
+### Version 0.1.13
+
+- Fix bug release lock task
+
 ### Version 0.1.12
 
 - Using single channel

@@ -4,6 +4,7 @@ import logging
 
 import pika
 from django.core.cache import caches
+from django.db.models import Q
 from django.utils import timezone
 
 from event_queue.models import EventQueueModel
@@ -24,19 +25,24 @@ class QueueProcessFacade(object):
     QUEUE = None
     ROUTING_KEY = None
     EVENT_TYPE = None
-    TIMEOUT = 1
 
     __default_connection_config = {
-        'host': os.environ.get('AMQP_HOST', 'localhost'),
-        'port': os.environ.get('AMQP_HOST', 5672),
-        'vhost': os.environ.get('AMQP_VHOST', '/'),
-        'username': os.environ.get('AMQP_USERNAME', 'guest'),
-        'password': os.environ.get('AMQP_PASSWORD', 'guest'),
+        'host': 'localhost',
+        'port': 5672,
+        'vhost': '/',
+        'username': 'guest',
+        'password': 'guest',
     }
-    __connection = None
 
-    def __init__(self, task_name=None):
+    __connection = None
+    __channel = None
+    __timeout = None
+    __limit = None
+
+    def __init__(self, task_name=None, timeout=None, limit=None):
         self.set_task_name(task_name)
+        self.__timeout = timeout
+        self.__limit = limit
 
     def set_connection(self, connection=None):
         if connection is not None:
@@ -91,7 +97,7 @@ class QueueProcessFacade(object):
         if key is None:
             key = self.get_task_name()
         if timeout is None:
-            timeout = self.TIMEOUT
+            timeout = self.__timeout
         # No running task
         begin_timestamp = task_cache.get(key)
         if begin_timestamp is None:
@@ -114,7 +120,7 @@ class QueueProcessFacade(object):
         if key is None:
             key = self.get_task_name()
         if timeout is None:
-            timeout = self.TIMEOUT
+            timeout = self.__timeout
         task_cache.set(key, timezone.now().timestamp(), timeout)
 
     def release_lock(self, key=TASK_NAME):
@@ -129,7 +135,7 @@ class QueueProcessFacade(object):
         logger.info('release_lock | task: {}'.format(key))
 
     def get_list(self, task_name=None, exchange=None, exchange_type=None, queue=None, routing_key=None, event_type=None,
-                 status=EventQueueModel.STATUS__OPENED, max_attempt=3):
+                 status=EventQueueModel.STATUS__OPENED, max_attempt=3, limit=None):
         """
         Get list of opened events
 
@@ -154,19 +160,25 @@ class QueueProcessFacade(object):
         if status is not None:
             query_params['status'] = status
         opened_list = EventQueueModel.objects.filter(**query_params)
+        if limit is None:
+            limit = self.__limit
+        if limit is not None:
+            opened_list = opened_list[:limit]
         logger.info('get_list | query_params: {} | number of records: {}'.format(query_params, len(opened_list)))
         return opened_list
 
-    def closed_event(self, event):
+    def close_event(self, event):
         """
         Close an event
         :param event: event need closing
 
         """
-        logger.info('closed_event | task: {} | event_id: {}'.format(event.task_name, event.id))
-        event.status = EventQueueModel.STATUS__CLOSED
-        event.updated_at = timezone.now()
-        event.save()
+        affected_row = EventQueueModel.objects.filter(
+            Q(pk=event.id) and ~Q(status=EventQueueModel.STATUS__CLOSED)
+        ).update(status=EventQueueModel.STATUS__CLOSED, updated_at=timezone.now())
+        logger.info(
+            'close_event | task: {} | event_id: {} | affected_row: {}'.format(event.task_name, event.id, affected_row))
+        return affected_row
 
     def is_closed(self, event):
         """
@@ -209,6 +221,20 @@ class QueueProcessFacade(object):
         )
         return self.__connection
 
+    def create_channel(self):
+        if self.__channel is not None:
+            self.__channel.close()
+        self.__channel = self.__connection.channel()
+
+    def get_channel(self):
+        if self.__channel is None:
+            self.__channel = self.__connection.channel()
+        return self.__channel
+
+    def close_channel(self):
+        if self.__channel is not None:
+            self.__channel.close()
+
     def close_connection(self):
         """
         Close AMQP connection
@@ -237,19 +263,24 @@ class QueueProcessFacade(object):
             queue=args.get('queue', None),
             routing_key=args.get('routing_key', None),
             event_type=args.get('event_type', None),
-            max_attempt=args.get('max_attempt', 3)
+            max_attempt=args.get('max_attempt', 3),
+            limit=args.get('limit', None)
         )
         if len(event_list) > 0:
             if kwargs.get('make_amqp_connection', True):
                 self.make_connection(kwargs.get('amqp_config', None))
+                self.create_channel()
             for event in event_list:
                 logger.info('get_list | task: {} | event_id: {}'.format(task_name, event.id))
                 if self.process(event):
-                    self.closed_event(event)
+                    self.close_event(event)
             self.release_lock(task_name)
+            self.close_channel()
             self.close_connection()
         return True
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.__channel is not None:
+            self.close_channel()
         if self.__connection is not None:
             self.close_connection()

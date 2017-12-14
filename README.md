@@ -1,7 +1,5 @@
 # Event Queue
 
-*Current version:* 0.1.1 (dev)
-
 ## Requirements
 
 1. Using cache (memcache, redis,... )

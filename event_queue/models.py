@@ -19,6 +19,7 @@ class EventQueueModel(models.Model):
     STATUS_CHOICES = (
         (STATUS__OPENED, 'Opened'),
         (STATUS__CLOSED, 'Closed'),
+        (STATUS__CANCELLED, 'Cancelled'),
     )
 
     id = models.BigAutoField(primary_key=True)

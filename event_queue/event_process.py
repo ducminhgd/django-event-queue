@@ -123,6 +123,9 @@ class QueueProcessFacade(object):
         if timeout is None:
             timeout = self.__timeout
         task_cache.set(key, timezone.now().timestamp(), timeout)
+        if task_cache.get(key, None) is None:
+            logger.error('Cache service is not available')
+            raise RuntimeError
         logger.info('Locked | task: {}'.format(key))
 
     def release_lock(self, key=TASK_NAME):

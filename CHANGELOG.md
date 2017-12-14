@@ -2,6 +2,10 @@
 
 ## Version 0.x.x
 
+### Version 0.1.16
+
+- Raise exception if there is no cache service
+
 ### Version 0.1.15
 
 - Release lock task when has exception

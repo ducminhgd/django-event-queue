@@ -274,9 +274,9 @@ class QueueProcessFacade(object):
                 logger.info('get_list | task: {} | event_id: {}'.format(task_name, event.id))
                 if self.process(event):
                     self.close_event(event)
-            self.release_lock(task_name)
             self.close_channel()
             self.close_connection()
+        self.release_lock(task_name)
         return True
 
     def __exit__(self, exc_type, exc_val, exc_tb):

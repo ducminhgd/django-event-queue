@@ -2,6 +2,11 @@
 
 ## Version 0.x.x
 
+### Version 0.1.17
+
+- Set channel is None when close
+- Create `handle` method for child(ren) override.
+
 ### Version 0.1.16
 
 - Raise exception if there is no cache service

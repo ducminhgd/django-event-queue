@@ -237,8 +237,12 @@ class QueueProcessFacade(object):
         return self.__channel
 
     def close_channel(self):
-        if self.__channel is not None:
+        try:
             self.__channel.close()
+        except:
+            pass
+        finally:
+            self.__channel = None
 
     def close_connection(self):
         """
@@ -253,6 +257,9 @@ class QueueProcessFacade(object):
             self.__connection = None
 
     def __call__(self, **kwargs):
+        self.handle(**kwargs)
+
+    def handle(self, **kwargs):
         task_name = self.get_task_name()
         if self.is_running_task(key=task_name):
             return False

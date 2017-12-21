@@ -25,6 +25,7 @@ class QueueProcessFacade(object):
     QUEUE = None
     ROUTING_KEY = None
     EVENT_TYPE = None
+    MAX_ATTEMPT = 3
 
     __default_connection_config = {
         'host': 'localhost',
@@ -274,7 +275,7 @@ class QueueProcessFacade(object):
                 queue=args.get('queue', None),
                 routing_key=args.get('routing_key', None),
                 event_type=args.get('event_type', None),
-                max_attempt=args.get('max_attempt', 3),
+                max_attempt=args.get('max_attempt', self.MAX_ATTEMPT),
                 limit=args.get('limit', None)
             )
             if len(event_list) > 0:
@@ -285,6 +286,9 @@ class QueueProcessFacade(object):
                     logger.info('get_list | task: {} | event_id: {}'.format(task_name, event.id))
                     if self.process(event):
                         self.close_event(event)
+                    elif event.attempt >= self.MAX_ATTEMPT and event.status == EventQueueModel.STATUS__OPENED:
+                        event.status = EventQueueModel.STATUS__MAX_ATTEMPT
+                        event.save()
                 self.close_channel()
                 self.close_connection()
         except:

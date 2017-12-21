@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Index
 
 
 class EventQueueModel(models.Model):
@@ -15,11 +16,13 @@ class EventQueueModel(models.Model):
     STATUS__OPENED = 0
     STATUS__CLOSED = 1
     STATUS__CANCELLED = 2
+    STATUS__MAX_ATTEMPT = 3
 
     STATUS_CHOICES = (
         (STATUS__OPENED, 'Opened'),
         (STATUS__CLOSED, 'Closed'),
         (STATUS__CANCELLED, 'Cancelled'),
+        (STATUS__MAX_ATTEMPT, 'Max attempt'),
     )
 
     id = models.BigAutoField(primary_key=True)
@@ -38,3 +41,4 @@ class EventQueueModel(models.Model):
 
     class Meta:
         db_table = 'event_queue'
+        indexes = [Index(['routing_key', 'updated_at']), Index(['status'])]

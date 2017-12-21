@@ -2,6 +2,12 @@
 
 ## Version 0.x.x
 
+### Version 0.1.18
+
+- Create index for: `(routing_key, updated_at)`, `status`
+- Add status `STATUS__MAX_ATTEMPT = 3`
+- Create `QueueProcessFacade.MAX_ATTEMPT` attribute, if `event.attempt` >= `QueueProcessFacade.MAX_ATTEMPT` then set status of event to `STATUS__MAX_ATTEMPT`
+
 ### Version 0.1.17
 
 - Set channel is None when close

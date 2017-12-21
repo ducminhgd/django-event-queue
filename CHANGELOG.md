@@ -2,6 +2,10 @@
 
 ## Version 0.x.x
 
+### Version 0.1.19
+
+- Make migration files
+
 ### Version 0.1.18
 
 - Create index for: `(routing_key, updated_at)`, `status`

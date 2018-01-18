@@ -286,9 +286,12 @@ class QueueProcessFacade(object):
                     logger.info('get_list | task: {} | event_id: {}'.format(task_name, event.id))
                     if self.process(event):
                         self.close_event(event)
-                    elif event.attempt >= self.MAX_ATTEMPT and event.status == EventQueueModel.STATUS__OPENED:
-                        event.status = EventQueueModel.STATUS__MAX_ATTEMPT
-                        event.save()
+                    elif event.status == EventQueueModel.STATUS__OPENED:
+                        # Fix compare int with CombinedExpression
+                        event.refresh_from_db()
+                        if event.attempt >= self.MAX_ATTEMPT:
+                            event.status = EventQueueModel.STATUS__MAX_ATTEMPT
+                            event.save()
                 self.close_channel()
                 self.close_connection()
         except:

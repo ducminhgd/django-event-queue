@@ -2,6 +2,10 @@
 
 ## Version 0.x.x
 
+### Version 0.1.20
+
+- Fix comparision between in and CombinedExpression [more information](https://stackoverflow.com/questions/33672920/django-db-models-f-combined-expression)
+
 ### Version 0.1.19
 
 - Make migration files
